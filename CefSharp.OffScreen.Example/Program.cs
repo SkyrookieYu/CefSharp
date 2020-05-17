@@ -1,4 +1,4 @@
-﻿// Copyright © 2010-2017 The CefSharp Authors. All rights reserved.
+// Copyright © 2014 The CefSharp Authors. All rights reserved.
 //
 // Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
 
@@ -6,11 +6,9 @@ using System;
 using System.Diagnostics;
 using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Threading.Tasks;
 using CefSharp.Example;
 using CefSharp.Example.Handlers;
-using CefSharp.Internals;
 
 namespace CefSharp.OffScreen.Example
 {
@@ -24,17 +22,24 @@ namespace CefSharp.OffScreen.Example
             Console.WriteLine("You may see a lot of Chromium debugging output, please wait...");
             Console.WriteLine();
 
-            // You need to replace this with your own call to Cef.Initialize();
-            CefExample.Init(true, multiThreadedMessageLoop:true, browserProcessHandler: new BrowserProcessHandler());
+            Cef.EnableWaitForBrowsersToClose();
 
-            MainAsync("cachePath1", 1.0);
+            // You need to replace this with your own call to Cef.Initialize();
+            CefExample.Init(new CefSettings(), browserProcessHandler: new BrowserProcessHandler());
+
+            MainAsync("cache\\path1", 1.0);
             //Demo showing Zoom Level of 3.0
             //Using seperate request contexts allows the urls from the same domain to have independent zoom levels
             //otherwise they would be the same - default behaviour of Chromium
-            //MainAsync("cachePath2", 3.0);
+            //MainAsync("cache\\path2", 3.0);
 
             // We have to wait for something, otherwise the process will exit too soon.
             Console.ReadKey();
+
+            //Wait until the browser has finished closing (which by default happens on a different thread).
+            //Cef.EnableWaitForBrowsersToClose(); must be called before Cef.Initialize to enable this feature
+            //See https://github.com/cefsharp/CefSharp/issues/3047 for details
+            Cef.WaitForBrowsersToClose();
 
             // Clean up Chromium objects.  You need to call this in your application otherwise
             // you will get a crash when closing.
@@ -49,11 +54,14 @@ namespace CefSharp.OffScreen.Example
             var browserSettings = new BrowserSettings();
             //Reduce rendering speed to one frame per second so it's easier to take screen shots
             browserSettings.WindowlessFrameRate = 1;
-            var requestContextSettings = new RequestContextSettings { CachePath = cachePath };
+            var requestContextSettings = new RequestContextSettings
+            {
+                CachePath = Path.GetFullPath(cachePath)
+            };
 
             // RequestContext can be shared between browser instances and allows for custom settings
             // e.g. CachePath
-            using(var requestContext = new RequestContext(requestContextSettings))
+            using (var requestContext = new RequestContext(requestContextSettings))
             using (var browser = new ChromiumWebBrowser(TestUrl, browserSettings, requestContext))
             {
                 if (zoomLevel > 1)
@@ -77,13 +85,24 @@ namespace CefSharp.OffScreen.Example
                     //Check do not track status
                     var doNotTrack = (bool)preferences["enable_do_not_track"];
 
-                    Debug.WriteLine("DoNotTrack:" + doNotTrack);
+                    Debug.WriteLine("DoNotTrack: " + doNotTrack);
                 });
 
                 var onUi = Cef.CurrentlyOnThread(CefThreadIds.TID_UI);
 
                 // For Google.com pre-pupulate the search text box
-                await browser.EvaluateScriptAsync("document.getElementById('lst-ib').value = 'CefSharp Was Here!'");
+                await browser.EvaluateScriptAsync("document.querySelector('[name=q]').value = 'CefSharp Was Here!'");
+
+                //Example using SendKeyEvent for input instead of javascript
+                //var browserHost = browser.GetBrowserHost();
+                //var inputString = "CefSharp Was Here!";
+                //foreach(var c in inputString)
+                //{
+                //	browserHost.SendKeyEvent(new KeyEvent { WindowsKeyCode = c, Type = KeyEventType.Char });
+                //}
+
+                ////Give the browser a little time to finish drawing our SendKeyEvent input
+                //await Task.Delay(100);
 
                 // Wait for the screenshot to be taken,
                 // if one exists ignore it, wait for a new one to make sure we have the most up to date
@@ -91,7 +110,6 @@ namespace CefSharp.OffScreen.Example
 
                 await LoadPageAsync(browser, "http://github.com");
 
-                
                 //Gets a wrapper around the underlying CefBrowser instance
                 var cefBrowser = browser.GetBrowser();
                 // Gets a warpper around the CefBrowserHost instance
@@ -108,9 +126,7 @@ namespace CefSharp.OffScreen.Example
 
         public static Task LoadPageAsync(IWebBrowser browser, string address = null)
         {
-            //If using .Net 4.6 then use TaskCreationOptions.RunContinuationsAsynchronously
-            //and switch to tcs.TrySetResult below - no need for the custom extension method
-            var tcs = new TaskCompletionSource<bool>();
+            var tcs = new TaskCompletionSource<bool>(TaskCreationOptions.RunContinuationsAsynchronously);
 
             EventHandler<LoadingStateChangedEventArgs> handler = null;
             handler = (sender, args) =>
@@ -119,9 +135,8 @@ namespace CefSharp.OffScreen.Example
                 if (!args.IsLoading)
                 {
                     browser.LoadingStateChanged -= handler;
-                    //This is required when using a standard TaskCompletionSource
-                    //Extension method found in the CefSharp.Internals namespace
-                    tcs.TrySetResultAsync(true);
+                    //Important that the continuation runs async using TaskCreationOptions.RunContinuationsAsynchronously
+                    tcs.TrySetResult(true);
                 }
             };
 
