@@ -83,6 +83,18 @@ namespace CefSharp.Wpf.Rendering
                             return;
                         }
 
+                        var size = isPopup ? popupSize : viewSize;
+
+                        //If OnPaint is called multiple times before
+                        //our BeginInvoke call we check the size matches our most recent
+                        //update, the buffer has already been overriden (frame is dropped effectively)
+                        //so we ignore this call
+                        //https://github.com/cefsharp/CefSharp/issues/3114
+                        if (size.Width != width || size.Height != height)
+                        {
+                            return;
+                        }
+
                         if (createNewBitmap)
                         {
                             if (image.Source != null)
@@ -98,6 +110,16 @@ namespace CefSharp.Wpf.Rendering
                         var noOfBytes = stride * height;
 
                         var bitmap = (WriteableBitmap)image.Source;
+
+                        //When agressively resizing the ChromiumWebBrowser sometimes
+                        //we can end up with our buffer size not matching our bitmap size
+                        //Just ignore these frames as the rendering should eventually catch up
+                        //(CEF can generate multiple frames before WPF has performed a render cycle)
+                        //https://github.com/cefsharp/CefSharp/issues/3474
+                        if (width > bitmap.PixelWidth || height > bitmap.PixelHeight)
+                        {
+                            return;
+                        }
 
                         //By default we'll only update the dirty rect, for those that run into a MILERR_WIN32ERROR Exception (#2035)
                         //it's desirably to either upgrade to a newer .Net version (only client runtime needs to be installed, not compiled

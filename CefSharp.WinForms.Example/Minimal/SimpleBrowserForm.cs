@@ -4,6 +4,7 @@
 
 using System;
 using System.ComponentModel;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using CefSharp.Example.JavascriptBinding;
 
@@ -12,20 +13,15 @@ namespace CefSharp.WinForms.Example.Minimal
     public partial class SimpleBrowserForm : Form
     {
         private ChromiumWebBrowser browser;
-        private IFocusHandler customFocusHandler;
-        private bool multiThreadedMessageLoop;
 
-        public SimpleBrowserForm(bool multiThreadedMessageLoop, IFocusHandler customFocusHandler = null)
+        public SimpleBrowserForm()
         {
             InitializeComponent();
-
-            this.customFocusHandler = customFocusHandler;
-            this.multiThreadedMessageLoop = multiThreadedMessageLoop;
 
             Text = "CefSharp";
             WindowState = FormWindowState.Maximized;
 
-            var bitness = Environment.Is64BitProcess ? "x64" : "x86";
+            var bitness = RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
             var version = String.Format("Chromium: {0}, CEF: {1}, CefSharp: {2}, Environment: {3}", Cef.ChromiumVersion, Cef.CefVersion, Cef.CefSharpVersion, bitness);
             DisplayOutput(version);
 
@@ -67,18 +63,9 @@ namespace CefSharp.WinForms.Example.Minimal
             browser.StatusMessage += OnBrowserStatusMessage;
             browser.TitleChanged += OnBrowserTitleChanged;
             browser.AddressChanged += OnBrowserAddressChanged;
+#if !NETCOREAPP
             browser.JavascriptObjectRepository.Register("bound", new BoundObject(), false);
-            if (!multiThreadedMessageLoop)
-            {
-                browser.FocusHandler = null;
-            }
-
-            //Only override if we have a custom handler
-            if (customFocusHandler != null)
-            {
-                browser.FocusHandler = customFocusHandler;
-            }
-
+#endif
         }
 
         private void OnBrowserConsoleMessage(object sender, ConsoleMessageEventArgs args)

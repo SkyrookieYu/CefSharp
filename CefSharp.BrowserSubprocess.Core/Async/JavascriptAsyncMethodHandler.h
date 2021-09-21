@@ -10,7 +10,7 @@
 
 namespace CefSharp
 {
-    namespace Internals
+    namespace BrowserSubprocess
     {
         namespace Async
         {
@@ -38,7 +38,7 @@ namespace CefSharp
                     _methodCallbackSave = nullptr;
                 }
 
-                IMPLEMENT_REFCOUNTING(JavascriptAsyncMethodHandler);
+                IMPLEMENT_REFCOUNTINGM(JavascriptAsyncMethodHandler);
             };
         }
     }

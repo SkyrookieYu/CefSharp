@@ -17,15 +17,15 @@ namespace CefSharp.WinForms.Example
         [STAThread]
         public static int Main(string[] args)
         {
-            const bool simpleSubProcess = false;
+            const bool selfHostSubProcess = false;
 
             Cef.EnableHighDPISupport();
 
             //NOTE: Using a simple sub processes uses your existing application executable to spawn instances of the sub process.
             //Features like JSB, EvaluateScriptAsync, custom schemes require the CefSharp.BrowserSubprocess to function
-            if (simpleSubProcess)
+            if (selfHostSubProcess)
             {
-                var exitCode = Cef.ExecuteProcess();
+                var exitCode = CefSharp.BrowserSubprocess.SelfHost.Main(args);
 
                 if (exitCode >= 0)
                 {
@@ -45,7 +45,7 @@ namespace CefSharp.WinForms.Example
 
                 Cef.Initialize(settings);
 
-                var browser = new SimpleBrowserForm(true);
+                var browser = new SimpleBrowserForm();
                 Application.Run(browser);
             }
             else
@@ -95,7 +95,7 @@ namespace CefSharp.WinForms.Example
 
                 CefExample.Init(settings, browserProcessHandler: browserProcessHandler);
 
-                //Application.Run(new MultiFormAppContext(multiThreadedMessageLoop));
+                //Application.Run(new MultiFormAppContext());
                 Application.Run(browser);
             }
 

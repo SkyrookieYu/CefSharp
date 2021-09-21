@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using CefSharp.Example;
@@ -27,7 +28,7 @@ namespace CefSharp.WinForms.Example
         {
             InitializeComponent();
 
-            var bitness = Environment.Is64BitProcess ? "x64" : "x86";
+            var bitness = RuntimeInformation.ProcessArchitecture.ToString().ToLowerInvariant();
             Text = "CefSharp.WinForms.Example - " + bitness;
             WindowState = FormWindowState.Maximized;
 
@@ -88,6 +89,7 @@ namespace CefSharp.WinForms.Example
             var browser = new BrowserTabUserControl(AddTab, url, multiThreadedMessageLoopEnabled)
             {
                 Dock = DockStyle.Fill,
+                Bounds = browserTabControl.Bounds
             };
 
             var tabPage = new TabPage(url)
@@ -566,7 +568,14 @@ namespace CefSharp.WinForms.Example
                 {
                     var requestContext = control.Browser.GetBrowserHost().RequestContext;
 
-                    var dir = Path.Combine(AppContext.BaseDirectory, @"..\..\..\..\CefSharp.Example\Extensions");
+                    const string cefSharpExampleResourcesFolder =
+#if !NETCOREAPP
+                        @"..\..\..\..\CefSharp.Example\Extensions";
+#else
+                        @"..\..\..\..\..\CefSharp.Example\Resources";
+#endif
+
+                    var dir = Path.Combine(AppContext.BaseDirectory, cefSharpExampleResourcesFolder);
                     dir = Path.GetFullPath(dir);
                     if (!Directory.Exists(dir))
                     {

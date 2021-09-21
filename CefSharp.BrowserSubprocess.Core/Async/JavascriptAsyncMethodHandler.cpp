@@ -4,17 +4,18 @@
 
 #include "stdafx.h"
 #include "JavascriptAsyncMethodHandler.h"
-#include "../CefSharp.Core/Internals/Messaging/Messages.h"
-#include "../CefSharp.Core/Internals/Serialization/Primitives.h"
+#include "../CefSharp.Core.Runtime/Internals/Messaging/Messages.h"
+#include "../CefSharp.Core.Runtime/Internals/Serialization/Primitives.h"
 #include "Serialization/V8Serialization.h"
 #include "CefAppUnmanagedWrapper.h"
 
 using namespace CefSharp::Internals::Messaging;
 using namespace CefSharp::Internals::Serialization;
+using namespace CefSharp::BrowserSubprocess::Serialization;
 
 namespace CefSharp
 {
-    namespace Internals
+    namespace BrowserSubprocess
     {
         namespace Async
         {
@@ -37,9 +38,9 @@ namespace CefSharp
 
                 //when refreshing the browser this is sometimes null, in this case return true and log message
                 //https://github.com/cefsharp/CefSharp/pull/2446
-                if (promiseData == NULL)
+                if (promiseData == nullptr)
                 {
-                    LOG(WARNING) << "JavascriptAsyncMethodHandler::Execute promiseData returned NULL";
+                    LOG(WARNING) << "JavascriptAsyncMethodHandler::Execute promiseData returned nullptr";
 
                     return true;
                 }
@@ -54,7 +55,7 @@ namespace CefSharp
                 auto request = CefProcessMessage::Create(kJavascriptAsyncMethodCallRequest);
                 auto argList = request->GetArgumentList();
                 auto params = CefListValue::Create();
-                for (auto i = 0; i < arguments.size(); i++)
+                for (size_t i = 0; i < arguments.size(); i++)
                 {
                     SerializeV8Object(arguments[i], params, i, _callbackRegistry);
                 }

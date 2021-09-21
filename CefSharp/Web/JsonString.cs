@@ -15,6 +15,9 @@ namespace CefSharp.Web
     /// </summary>
     public class JsonString
     {
+        /// <summary>
+        /// JSON String
+        /// </summary>
         public string Json { get; private set; }
 
         /// <summary>
@@ -29,6 +32,12 @@ namespace CefSharp.Web
             }
 
             Json = json;
+        }
+
+        /// <inheritdoc/>
+        public override string ToString()
+        {
+            return Json;
         }
 
         /// <summary>

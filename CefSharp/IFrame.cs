@@ -90,10 +90,7 @@ namespace CefSharp
         void GetText(IStringVisitor visitor);
 
         /// <summary>
-        /// Load the custom request. LoadRequest can only be used if a renderer process already exists.
-        /// In newer versions initially loading about:blank no longer creates a renderer process. You
-        /// can load a Data Uri initially then call this method.
-        /// https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/Data_URIs
+        /// Load the custom request. 
         /// WARNING: This method will fail with "bad IPC message" reason
         /// INVALID_INITIATOR_ORIGIN (213) unless you first navigate to the
         /// request origin using some other mechanism (LoadURL, link click, etc).
@@ -124,8 +121,12 @@ namespace CefSharp
         /// <param name="scriptUrl">is the URL where the script in question can be found, if any.</param>
         /// <param name="startLine">is the base line number to use for error reporting.</param>
         /// <param name="timeout">The timeout after which the Javascript code execution should be aborted.</param>
+        /// <param name="useImmediatelyInvokedFuncExpression">When true the script is wrapped in a self executing function.
+        /// Make sure to use a return statement in your javascript. e.g. (function () { return 42; })();
+        /// When false don't include a return statement e.g. 42;
+        /// </param>
         /// <returns>A Task that can be awaited to perform the script execution</returns>
-        Task<JavascriptResponse> EvaluateScriptAsync(string script, string scriptUrl = "about:blank", int startLine = 1, TimeSpan? timeout = null);
+        Task<JavascriptResponse> EvaluateScriptAsync(string script, string scriptUrl = "about:blank", int startLine = 1, TimeSpan? timeout = null, bool useImmediatelyInvokedFuncExpression = false);
 
         /// <summary>
         /// Returns true if this is the main (top-level) frame.
