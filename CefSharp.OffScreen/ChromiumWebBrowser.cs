@@ -510,18 +510,27 @@ namespace CefSharp.OffScreen
             return completionSource.Task;
         }
 
-        /// <summary>
-        /// Loads the specified URL.
-        /// </summary>
-        /// <param name="url">The URL to be loaded.</param>
+        /// <inheritdoc/>
         public void Load(string url)
         {
-            Address = url;
-
-            //Destroy the frame wrapper when we're done
-            using (var frame = this.GetMainFrame())
+            if (IsDisposed)
             {
-                frame.LoadUrl(url);
+                return;
+            }
+
+            //There's a small window here between CreateBrowser
+            //and OnAfterBrowserCreated where the Address prop
+            //will be updated, though LoadUrl won't be called.
+            if (IsBrowserInitialized)
+            {
+                using (var frame = this.GetMainFrame())
+                {
+                    frame.LoadUrl(url);
+                }
+            }
+            else
+            {
+                Address = url;
             }
         }
 

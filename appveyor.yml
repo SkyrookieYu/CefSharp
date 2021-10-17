@@ -1,4 +1,4 @@
-version: 94.2.20-CI{build}
+version: 94.4.90-CI{build}
 
 clone_depth: 10
 
@@ -8,11 +8,11 @@ configuration: Release
 
 build_script:
   - ps: .\build.ps1
-  - ps: .\build.netcore.ps1
+  - ps: .\build.ps1 -TargetFramework NetCore
 
 test_script:
   # Test our Release x64 build
-  - dotnet test CefSharp.Test\bin\x64\Release\CefSharp.Test.dll
+  - dotnet test CefSharp.Test\bin\x64\Release\win7-x64\CefSharp.Test.dll
   - dotnet test CefSharp.Test\bin.netcore\x64\Release\netcoreapp3.1\win-x64\CefSharp.Test.dll
 
 artifacts:

@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
@@ -152,6 +153,36 @@ namespace CefSharp.Test.OffScreen
                 Assert.True(javascriptResponse.Success);
                 Assert.Equal(4, (int)javascriptResponse.Result);
                 output.WriteLine("Result of 2 + 2: {0}", javascriptResponse.Result);
+            }
+        }
+
+        [Fact]
+        public async Task CanEvaluateScriptInParallel()
+        {
+            using (var browser = new ChromiumWebBrowser("www.google.com"))
+            {
+                var response = await browser.LoadUrlAsync();
+
+                Assert.True(response.Success);
+
+                var tasks = Enumerable.Range(0, 100).Select(i => Task.Run(async () =>
+                {
+                    var javascriptResponse = await browser.EvaluateScriptAsync("2 + 2");
+
+                    if (javascriptResponse.Success)
+                    {
+                        return (int)javascriptResponse.Result;
+                    }
+
+                    return -1;
+                })).ToList();
+
+                await Task.WhenAll(tasks);
+
+                Assert.All(tasks, (t) =>
+                {
+                    Assert.Equal(t.Result, 4);
+                });
             }
         }
 
@@ -541,8 +572,11 @@ namespace CefSharp.Test.OffScreen
         public async Task CanLoadRequestWithPostData(string url)
         {
             const string data = "Testing123";
-            //To use LoadRequest we must first load a web page
-            using (var browser = new ChromiumWebBrowser(new HtmlString("Testing")))
+            //When Chromium Site Isolation is enabled we must first navigate to
+            //a web page of the same origin to use LoadRequest
+            //When Site Isolation is disabled we can navigate to any web page
+            //https://magpcss.org/ceforum/viewtopic.php?f=10&t=18672&p=50266#p50249
+            using (var browser = new ChromiumWebBrowser("http://httpbin.org/"))
             {
                 var response = await browser.LoadUrlAsync();
 

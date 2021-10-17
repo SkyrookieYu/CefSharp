@@ -47,12 +47,30 @@ namespace CefSharp.Test.JavascriptBinding
                 repo.Register("boundAsync", new AsyncBoundObject(), options: bindingOptions);
                 repo.Register("boundAsync2", new AsyncBoundObject(), options: bindingOptions);
 
+                browser.JavascriptMessageReceived += (s, e) =>
+                {
+                    dynamic msg = e.Message;
+                    var type = (string)msg.Type;
+
+                    if (type == "QUnitTestFailed")
+                    {
+                        var testOutput = (string)msg.Output;
+                        output.WriteLine(testOutput);
+                    }
+                };
+
                 browser.CreateBrowser();
-                var success = await browser.WaitForQUnitTestExeuctionToComplete();
+                var response = await browser.WaitForQUnitTestExeuctionToComplete();
 
-                Assert.True(success);
+                if (!response.Success)
+                {
+                    output.WriteLine("QUnit Passed : {0}", response.Passed);
+                    output.WriteLine("QUnit Total : {0}", response.Total);
+                }
 
-                output.WriteLine("QUnit Tests result: {0}", success);
+                Assert.True(response.Success);
+
+                output.WriteLine("QUnit Tests result: {0}", response.Success);
             }
         }
 #else
@@ -69,12 +87,30 @@ namespace CefSharp.Test.JavascriptBinding
                 repo.Register("boundAsync", new AsyncBoundObject(), isAsync: true, options: bindingOptions);
                 repo.Register("boundAsync2", new AsyncBoundObject(), isAsync: true, options: bindingOptions);
 
+                browser.JavascriptMessageReceived += (s, e) =>
+                {
+                    dynamic msg = e.Message;
+                    var type = (string)msg.Type;
+
+                    if (type == "QUnitTestFailed")
+                    {
+                        var testOutput = (string)msg.Output;
+                        output.WriteLine(testOutput);
+                    }
+                };
+
                 browser.CreateBrowser();
-                var success = await browser.WaitForQUnitTestExeuctionToComplete();
+                var response = await browser.WaitForQUnitTestExeuctionToComplete();
 
-                Assert.True(success);
+                if (!response.Success)
+                {
+                    output.WriteLine("QUnit Passed : {0}", response.Passed);
+                    output.WriteLine("QUnit Total : {0}", response.Total);
+                }
 
-                output.WriteLine("QUnit Tests result: {0}", success);
+                Assert.True(response.Success);
+
+                output.WriteLine("QUnit Tests result: {0}", response.Success);
             }
         }
 
@@ -91,12 +127,30 @@ namespace CefSharp.Test.JavascriptBinding
                 repo.Register("bound", new BoundObject(), isAsync: false, options: bindingOptions);
                 repo.Register("boundAsync", new AsyncBoundObject(), isAsync: true, options: bindingOptions);
 
+                browser.JavascriptMessageReceived += (s, e) =>
+                {
+                    dynamic msg = e.Message;
+                    var type = (string)msg.Type;
+
+                    if (type == "QUnitTestFailed")
+                    {
+                        var testOutput = (string)msg.Output;
+                        output.WriteLine(testOutput);
+                    }
+                };
+
                 browser.CreateBrowser();
-                var success = await browser.WaitForQUnitTestExeuctionToComplete();
+                var response = await browser.WaitForQUnitTestExeuctionToComplete();
 
-                Assert.True(success);
+                if(!response.Success)
+                {
+                    output.WriteLine("QUnit Passed : {0}", response.Passed);
+                    output.WriteLine("QUnit Total : {0}", response.Total);
+                }
 
-                output.WriteLine("QUnit Tests result: {0}", success);
+                Assert.True(response.Success);
+
+                output.WriteLine("QUnit Tests result: {0}", response.Success);
             }
         }
 #endif

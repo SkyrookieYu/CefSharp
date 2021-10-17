@@ -15,7 +15,7 @@
       <group targetFramework=".NETFramework4.5.2">
         <dependency id="CefSharp.Common" version="[$version$]" />
       </group>
-      <group targetFramework=".NETCoreApp3.0">
+	  <group targetFramework=".NETFramework4.6.2">
         <dependency id="CefSharp.Common" version="[$version$]" />
       </group>
     </dependencies>

@@ -3,10 +3,9 @@
 # Update projects files
 # I haven't found a clean solution that allows for using just nuget.exe and dotnet.exe to do this
 # Update the vcxproj files first
-# Update the .Net 4.5.2 csproj files using nuget.exe
-# Update the .Net Core csproj files modifying the xml file directly
+# Update the .Net csproj files modifying the xml file directly
 
-$CefVersion = '94.2.2'
+$CefVersion = '94.4.9'
 
 function RemoveEnsureNuGetPackageBuildImports
 {
@@ -41,26 +40,16 @@ foreach($file in $vcxprojFiles)
 	RemoveEnsureNuGetPackageBuildImports (Resolve-Path $file)
 }
 
-$csprojFiles = @('CefSharp.WinForms.Example\CefSharp.WinForms.Example.csproj','CefSharp.Wpf.Example\CefSharp.Wpf.Example.csproj','CefSharp.OffScreen.Example\CefSharp.OffScreen.Example.csproj', 'CefSharp.Test\CefSharp.Test.csproj')
-
-foreach($file in $csprojFiles)
-{
-	..\nuget update $file -Id cef.redist.x64 -Version $CefVersion
-	..\nuget update $file -Id cef.redist.x86 -Version $CefVersion
-	
-	RemoveEnsureNuGetPackageBuildImports (Resolve-Path $file)
-}
-
 #Read the newly updated version number from the packages.CefSharp.Core.Runtime.config
 
 $CefSharpCorePackagesXml = [xml](Get-Content (Resolve-Path 'CefSharp.Core.Runtime\packages.CefSharp.Core.Runtime.config'))
 $RedistVersion = $CefSharpCorePackagesXml.SelectSingleNode("//packages/package[@id='cef.sdk']/@version").value
 
-$netcorecsprojFiles = @('CefSharp.WinForms.Example\CefSharp.WinForms.Example.netcore.csproj','CefSharp.Wpf.Example\CefSharp.Wpf.Example.netcore.csproj','CefSharp.OffScreen.Example\CefSharp.OffScreen.Example.netcore.csproj', 'CefSharp.Test\CefSharp.Test.netcore.csproj')
+$csprojFiles = @('CefSharp.WinForms.Example\CefSharp.WinForms.Example.netcore.csproj','CefSharp.Wpf.Example\CefSharp.Wpf.Example.netcore.csproj','CefSharp.OffScreen.Example\CefSharp.OffScreen.Example.netcore.csproj', 'CefSharp.Test\CefSharp.Test.netcore.csproj', 'CefSharp.WinForms.Example\CefSharp.WinForms.Example.csproj','CefSharp.Wpf.Example\CefSharp.Wpf.Example.csproj','CefSharp.OffScreen.Example\CefSharp.OffScreen.Example.csproj', 'CefSharp.Test\CefSharp.Test.csproj')
 
 #Loop through the net core example projects and update the package version number
 
-foreach($file in $netcorecsprojFiles)
+foreach($file in $csprojFiles)
 {
     $file = Resolve-Path $file
 	$xml = New-Object xml
