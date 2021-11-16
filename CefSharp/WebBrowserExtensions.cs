@@ -4,6 +4,7 @@
 
 using System;
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Globalization;
 using System.IO;
 using System.Text;
@@ -30,6 +31,7 @@ namespace CefSharp
         /// <exception cref="Exception">Browser is already initialized. RegisterJsObject must be +
         ///                                     called before the underlying CEF browser is created.</exception>
         [Obsolete("This method has been removed, see https://github.com/cefsharp/CefSharp/issues/2990 for details on migrating your code.")]
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public static void RegisterJsObject(this IWebBrowser webBrowser, string name, object objectToBind, BindingOptions options = null)
         {
             throw new NotImplementedException("This method has been removed, see https://github.com/cefsharp/CefSharp/issues/2990 for details on migrating your code.");
@@ -48,6 +50,7 @@ namespace CefSharp
         /// <remarks>The registered methods can only be called in an async way, they will all return immediately and the resulting
         /// object will be a standard javascript Promise object which is usable to wait for completion or failure.</remarks>
         [Obsolete("This method has been removed, see https://github.com/cefsharp/CefSharp/issues/2990 for details on migrating your code.")]
+        [EditorBrowsable(EditorBrowsableState.Never)]
         public static void RegisterAsyncJsObject(this IWebBrowser webBrowser, string name, object objectToBind, BindingOptions options = null)
         {
             throw new NotImplementedException("This method has been removed, see https://github.com/cefsharp/CefSharp/issues/2990 for details on migrating your code.");
@@ -244,17 +247,21 @@ namespace CefSharp
         }
 
         /// <summary>
-        /// See <see cref="IWebBrowser.LoadUrlAsync(string, SynchronizationContext)"/> for details
+        /// See <see cref="IWebBrowser.LoadUrlAsync(string)"/> for details
         /// </summary>
         /// <param name="chromiumWebBrowser">ChromiumWebBrowser instance (cannot be null)</param>
         /// <summary>
         /// Load the <paramref name="url"/> in the main frame of the browser
         /// </summary>
         /// <param name="url">url to load</param>
-        /// <param name="ctx">SynchronizationContext to execute the continuation on, if null then the ThreadPool will be used.</param>
-        /// <returns>See <see cref="IWebBrowser.LoadUrlAsync(string, SynchronizationContext)"/> for details</returns>
-        public static Task<LoadUrlAsyncResponse> LoadUrlAsync(IWebBrowser chromiumWebBrowser, string url = null, SynchronizationContext ctx = null)
+        /// <returns>See <see cref="IWebBrowser.LoadUrlAsync(string)"/> for details</returns>
+        public static Task<LoadUrlAsyncResponse> LoadUrlAsync(IWebBrowser chromiumWebBrowser, string url)
         {
+            if(string.IsNullOrEmpty(url))
+            {
+                throw new ArgumentNullException(nameof(url));
+            }
+
             var tcs = new TaskCompletionSource<LoadUrlAsyncResponse>();
 
             EventHandler<LoadErrorEventArgs> loadErrorHandler = null;
@@ -262,11 +269,8 @@ namespace CefSharp
 
             loadErrorHandler = (sender, args) =>
             {
-                //Ignore Aborted
-                //Currently invalid SSL certificates which aren't explicitly allowed
-                //end up with CefErrorCode.Aborted, I've created the following PR
-                //in the hopes of getting this fixed.
-                //https://bitbucket.org/chromiumembedded/cef/pull-requests/373
+                //Actions that trigger a download will raise an aborted error.
+                //Generally speaking Aborted is safe to ignore
                 if (args.ErrorCode == CefErrorCode.Aborted)
                 {
                     return;
@@ -278,20 +282,10 @@ namespace CefSharp
                 chromiumWebBrowser.LoadError -= loadErrorHandler;
                 chromiumWebBrowser.LoadingStateChanged -= loadingStateChangeHandler;
 
-                if (ctx == null)
-                {
-                    //Ensure our continuation is executed on the ThreadPool
-                    //For the .Net Core implementation we could use
-                    //TaskCreationOptions.RunContinuationsAsynchronously
-                    tcs.TrySetResultAsync(new LoadUrlAsyncResponse(args.ErrorCode, -1));
-                }
-                else
-                {
-                    ctx.Post(new SendOrPostCallback((o) =>
-                    {
-                        tcs.TrySetResult(new LoadUrlAsyncResponse(args.ErrorCode, -1));
-                    }), null);
-                }
+                //Ensure our continuation is executed on the ThreadPool
+                //For the .Net Core implementation we could use
+                //TaskCreationOptions.RunContinuationsAsynchronously
+                tcs.TrySetResultAsync(new LoadUrlAsyncResponse(args.ErrorCode, -1));
             };
 
             loadingStateChangeHandler = (sender, args) =>
@@ -319,30 +313,17 @@ namespace CefSharp
                         statusCode = -1;
                     }
 
-                    if (ctx == null)
-                    {
-                        //Ensure our continuation is executed on the ThreadPool
-                        //For the .Net Core implementation we could use
-                        //TaskCreationOptions.RunContinuationsAsynchronously
-                        tcs.TrySetResultAsync(new LoadUrlAsyncResponse(CefErrorCode.None, statusCode));
-                    }
-                    else
-                    {
-                        ctx.Post(new SendOrPostCallback((o) =>
-                        {
-                            tcs.TrySetResult(new LoadUrlAsyncResponse(CefErrorCode.None, statusCode));
-                        }), null);
-                    }
+                    //Ensure our continuation is executed on the ThreadPool
+                    //For the .Net Core implementation we could use
+                    //TaskCreationOptions.RunContinuationsAsynchronously
+                    tcs.TrySetResultAsync(new LoadUrlAsyncResponse(CefErrorCode.None, statusCode));
                 }
             };
 
             chromiumWebBrowser.LoadError += loadErrorHandler;
             chromiumWebBrowser.LoadingStateChanged += loadingStateChangeHandler;
 
-            if (!string.IsNullOrEmpty(url))
-            {
-                chromiumWebBrowser.Load(url);
-            }
+            chromiumWebBrowser.Load(url);
 
             return tcs.Task;
         }

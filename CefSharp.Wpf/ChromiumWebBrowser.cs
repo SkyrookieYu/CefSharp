@@ -1067,7 +1067,7 @@ namespace CefSharp.Wpf
         /// Sets the loading state change.
         /// </summary>
         /// <param name="args">The <see cref="LoadingStateChangedEventArgs"/> instance containing the event data.</param>
-        void IWebBrowserInternal.SetLoadingStateChange(LoadingStateChangedEventArgs args)
+        partial void SetLoadingStateChange(LoadingStateChangedEventArgs args)
         {
             UiThreadRunAsync(() =>
             {
@@ -1079,8 +1079,6 @@ namespace CefSharp.Wpf
                 ((DelegateCommand)ForwardCommand).RaiseCanExecuteChanged();
                 ((DelegateCommand)ReloadCommand).RaiseCanExecuteChanged();
             });
-
-            LoadingStateChanged?.Invoke(this, args);
         }
 
         /// <summary>
@@ -1123,7 +1121,7 @@ namespace CefSharp.Wpf
 
             if (initialFocus)
             {
-                browser.GetHost()?.SendFocusEvent(true);
+                browser.GetHost()?.SetFocus(true);
             }
         }
 
@@ -1693,23 +1691,35 @@ namespace CefSharp.Wpf
                 case WindowState.Normal:
                 case WindowState.Maximized:
                 {
-                    if (previousWindowState == WindowState.Minimized && browser != null)
+                    if (previousWindowState == WindowState.Minimized && IsVisible)
                     {
-                        browser.GetHost().WasHidden(false);
+                        OnBrowserWasHidden(false);
                     }
                     break;
                 }
                 case WindowState.Minimized:
                 {
-                    if (browser != null)
-                    {
-                        browser.GetHost().WasHidden(true);
-                    }
+                    OnBrowserWasHidden(true);
                     break;
                 }
             }
 
             previousWindowState = window.WindowState;
+        }
+
+        /// <summary>
+        /// Called when the underlying CefBrowser instance is hidden/shown
+        /// Calls <see cref="IBrowserHost.WasHidden(bool)"/>.
+        /// This method can be overriden to keep the browser in a visible state
+        /// even when it's not displayed on screen.
+        /// </summary>
+        /// <param name="hidden">if true the browser will be notified that it was hidden.</param>
+        protected virtual void OnBrowserWasHidden(bool hidden)
+        {
+            if (browser != null)
+            {
+                browser.GetHost().WasHidden(hidden);
+            }
         }
 
         /// <summary>
@@ -1897,8 +1907,7 @@ namespace CefSharp.Wpf
 
             if (browser != null)
             {
-                var host = browser.GetHost();
-                host.WasHidden(!isVisible);
+                OnBrowserWasHidden(!isVisible);
 
                 if (isVisible)
                 {
@@ -1906,6 +1915,7 @@ namespace CefSharp.Wpf
                     //browsers of the same origin will share the same zoomlevel and
                     //we need to track the update, so our ZoomLevelProperty works
                     //properly
+                    var host = browser.GetHost();
                     host.GetZoomLevelAsync().ContinueWith(t =>
                     {
                         if (!IsDisposed)
@@ -2069,7 +2079,7 @@ namespace CefSharp.Wpf
             }
             else
             {
-                browser.GetHost().SendFocusEvent(true);
+                browser.GetHost().SetFocus(true);
             }
         }
 
@@ -2086,7 +2096,7 @@ namespace CefSharp.Wpf
             }
             else
             {
-                browser.GetHost().SendFocusEvent(false);
+                browser.GetHost().SetFocus(false);
             }
         }
 

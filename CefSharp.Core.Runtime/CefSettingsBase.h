@@ -48,10 +48,6 @@ namespace CefSharp
                 BrowserSubprocessPath = Path::Combine(Path::GetDirectoryName(CefSettingsBase::typeid->Assembly->Location), "CefSharp.BrowserSubprocess.exe");
                 _cefCustomSchemes = gcnew List<CefCustomScheme^>();
                 _cefCommandLineArgs = gcnew CommandLineArgDictionary();
-
-                //Disable Windows Spellchecker as CEF doesn't support yet
-                //https://bitbucket.org/chromiumembedded/cef/issues/3055/windows-spell-checker-not-working-add
-                _cefCommandLineArgs->Add("disable-features", "CalculateNativeWinOcclusion,WinUseBrowserSpellChecker");
             }
 
             /// <summary>
@@ -184,15 +180,6 @@ namespace CefSharp
             {
                 String^ get() { return StringUtils::ToClr(_cefSettings->user_data_path); }
                 void set(String^ value) { StringUtils::AssignNativeFromClr(_cefSettings->user_data_path, value); }
-            }
-
-            /// <summary>
-            /// Set to true in order to completely ignore SSL certificate errors. This is NOT recommended.
-            /// </summary>
-            property bool IgnoreCertificateErrors
-            {
-                bool get() { return _cefSettings->ignore_certificate_errors == 1; }
-                void set(bool value) { _cefSettings->ignore_certificate_errors = value; }
             }
 
             /// <summary>

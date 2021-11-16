@@ -15,7 +15,6 @@ namespace CefSharp.Core
         public BrowserSettings() { }
         public BrowserSettings(bool autoDispose) { }
         public virtual string AcceptLanguageList { get { throw null; } set { } }
-        public virtual CefSharp.CefState ApplicationCache { get { throw null; } set { } }
         public virtual bool AutoDispose { get { throw null; } }
         public virtual uint BackgroundColor { get { throw null; } set { } }
         public virtual string CursiveFontFamily { get { throw null; } set { } }
@@ -24,7 +23,6 @@ namespace CefSharp.Core
         public virtual int DefaultFixedFontSize { get { throw null; } set { } }
         public virtual int DefaultFontSize { get { throw null; } set { } }
         public virtual string FantasyFontFamily { get { throw null; } set { } }
-        public virtual CefSharp.CefState FileAccessFromFileUrls { get { throw null; } set { } }
         public virtual string FixedFontFamily { get { throw null; } set { } }
         public virtual CefSharp.CefState ImageLoading { get { throw null; } set { } }
         public virtual CefSharp.CefState ImageShrinkStandaloneToFit { get { throw null; } set { } }
@@ -43,7 +41,6 @@ namespace CefSharp.Core
         public virtual string StandardFontFamily { get { throw null; } set { } }
         public virtual CefSharp.CefState TabToLinks { get { throw null; } set { } }
         public virtual CefSharp.CefState TextAreaResize { get { throw null; } set { } }
-        public virtual CefSharp.CefState UniversalAccessFromFileUrls { get { throw null; } set { } }
         public virtual CefSharp.CefState WebGl { get { throw null; } set { } }
         public virtual int WindowlessFrameRate { get { throw null; } set { } }
         public void Dispose() { }
@@ -115,7 +112,6 @@ namespace CefSharp.Core
         public bool CookieableSchemesExcludeDefaults { get { throw null; } set { } }
         public string CookieableSchemesList { get { throw null; } set { } }
         public bool ExternalMessagePump { get { throw null; } set { } }
-        public bool IgnoreCertificateErrors { get { throw null; } set { } }
         public string JavascriptFlags { get { throw null; } set { } }
         public string Locale { get { throw null; } set { } }
         public string LocalesDirPath { get { throw null; } set { } }
@@ -307,7 +303,6 @@ namespace CefSharp.Core
         public string CachePath { get { throw null; } set { } }
         public bool CookieableSchemesExcludeDefaults { get { throw null; } set { } }
         public string CookieableSchemesList { get { throw null; } set { } }
-        public bool IgnoreCertificateErrors { get { throw null; } set { } }
         public bool PersistSessionCookies { get { throw null; } set { } }
         public bool PersistUserPreferences { get { throw null; } set { } }
         public void Dispose() { }
@@ -345,6 +340,7 @@ namespace CefSharp.Core
         protected virtual void Dispose(bool A_0) { }
         ~WindowInfo() { }
         public virtual void SetAsChild(System.IntPtr parentHandle) { }
+        public virtual void SetAsChild(System.IntPtr parentHandle, CefSharp.Structs.Rect windowBounds) { }
         public virtual void SetAsChild(System.IntPtr parentHandle, int left, int top, int right, int bottom) { }
         public virtual void SetAsPopup(System.IntPtr parentHandle, string windowName) { }
         public virtual void SetAsWindowless(System.IntPtr parentHandle) { }
