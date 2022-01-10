@@ -12,6 +12,7 @@ using System.Windows.Forms;
 using CefSharp.Example;
 using CefSharp.Example.Callback;
 using CefSharp.Example.Handlers;
+using CefSharp.WinForms.Host;
 
 namespace CefSharp.WinForms.Example
 {
@@ -63,16 +64,22 @@ namespace CefSharp.WinForms.Example
         /// Used to add a Popup browser as a Tab
         /// </summary>
         /// <param name="browserHostControl"></param>
-        public void AddTab(Control browserHostControl, string url)
+        public void AddTab(ChromiumHostControl browserHostControl, string url)
         {
             browserTabControl.SuspendLayout();
+
+            var browser = new BrowserTabUserControl(browserHostControl)
+            {
+                Dock = DockStyle.Fill,
+                Bounds = browserTabControl.Bounds
+            };
 
             var tabPage = new TabPage(url)
             {
                 Dock = DockStyle.Fill
             };
 
-            tabPage.Controls.Add(browserHostControl);
+            tabPage.Controls.Add(browser);
 
             browserTabControl.TabPages.Add(tabPage);
 
@@ -310,7 +317,8 @@ namespace CefSharp.WinForms.Example
                 var isDevToolsOpen = await control.CheckIfDevToolsIsOpenAsync();
                 if (!isDevToolsOpen)
                 {
-                    if (control.Browser.LifeSpanHandler != null)
+                    var chromiumWebBrowser = control.Browser as ChromiumWebBrowser;
+                    if (chromiumWebBrowser != null && chromiumWebBrowser.LifeSpanHandler != null)
                     {
                         control.ShowDevToolsDocked();
                     }
@@ -478,7 +486,7 @@ namespace CefSharp.WinForms.Example
             var control = GetCurrentTabControl();
             if (control != null)
             {
-                control.Browser.Load("custom://cefsharp/ScriptedMethodsTest.html");
+                control.Browser.LoadUrl("custom://cefsharp/ScriptedMethodsTest.html");
             }
         }
 
@@ -545,7 +553,7 @@ namespace CefSharp.WinForms.Example
             var control = GetCurrentTabControl();
             if (control != null)
             {
-                control.Browser.Load("https://httpbin.org/");
+                control.Browser.LoadUrl("https://httpbin.org/");
             }
         }
 
@@ -564,7 +572,7 @@ namespace CefSharp.WinForms.Example
             if (control != null)
             {
                 //The sample extension only works for http(s) schemes
-                if (control.Browser.Address.StartsWith("http"))
+                if (control.Browser.GetMainFrame().Url.StartsWith("http"))
                 {
                     var requestContext = control.Browser.GetBrowserHost().RequestContext;
 
@@ -604,7 +612,7 @@ namespace CefSharp.WinForms.Example
                         GetActiveBrowser = (extension, isIncognito) =>
                         {
                             //Return the active browser for which the extension will act upon
-                            return control.Browser.GetBrowser();
+                            return control.Browser.BrowserCore;
                         }
                     };
 
@@ -622,7 +630,7 @@ namespace CefSharp.WinForms.Example
             var control = GetCurrentTabControl();
             if (control != null)
             {
-                control.Browser.Load(CefExample.BindingTestUrl);
+                control.Browser.LoadUrl(CefExample.BindingTestUrl);
                 control.Browser.LoadingStateChanged += (o, args) =>
                 {
                     if (args.IsLoading == false)

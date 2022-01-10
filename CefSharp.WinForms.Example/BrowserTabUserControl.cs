@@ -14,15 +14,32 @@ using CefSharp.Example.JavascriptBinding;
 using CefSharp.WinForms.Example.Handlers;
 using CefSharp.WinForms.Experimental;
 using CefSharp.WinForms.Handler;
+using CefSharp.WinForms.Host;
 
 namespace CefSharp.WinForms.Example
 {
     public partial class BrowserTabUserControl : UserControl
     {
-        public IWinFormsWebBrowser Browser { get; private set; }
-        private IntPtr browserHandle;
+        public IChromiumWebBrowserBase Browser { get; private set; }
         private ChromiumWidgetNativeWindow messageInterceptor;
         private bool multiThreadedMessageLoopEnabled;
+
+        public BrowserTabUserControl(ChromiumHostControl chromiumHostControl)
+        {
+            InitializeComponent();
+
+            Browser = chromiumHostControl;
+
+            browserPanel.Controls.Add(chromiumHostControl);
+
+            chromiumHostControl.LoadingStateChanged += OnBrowserLoadingStateChanged;
+            chromiumHostControl.ConsoleMessage += OnBrowserConsoleMessage;
+            chromiumHostControl.TitleChanged += OnBrowserTitleChanged;
+            chromiumHostControl.AddressChanged += OnBrowserAddressChanged;
+            chromiumHostControl.StatusMessage += OnBrowserStatusMessage;
+            chromiumHostControl.IsBrowserInitializedChanged += OnIsBrowserInitializedChanged;
+            chromiumHostControl.LoadError += OnLoadError;
+        }
 
         public BrowserTabUserControl(Action<string, int?> openNewTab, string url, bool multiThreadedMessageLoopEnabled)
         {
@@ -52,8 +69,18 @@ namespace CefSharp.WinForms.Example
             //The CefSharp.WinForms.Handler.LifeSpanHandler implementation
             //allows for Popups to be hosted in Controls/Tabs
             //This example also demonstrates docking DevTools in a SplitPanel
-            browser.LifeSpanHandler = LifeSpanHandler
+            browser.LifeSpanHandler = CefSharp.WinForms.Handler.LifeSpanHandler
                 .Create()
+                .OnBeforePopupCreated((chromiumWebBrowser, b, frame, targetUrl, targetFrameName, targetDisposition, userGesture, browserSettings) =>
+                {
+                    //Can cancel opening popup based on Url if required.
+                    if(targetUrl?.StartsWith(CefExample.BaseUrl + "/cancelme.html") == true)
+                    {
+                        return PopupCreation.Cancel;
+                    }
+
+                    return PopupCreation.Continue;
+                })
                 .OnPopupCreated((ctrl, targetUrl) =>
                 {
                     //Don't try using ctrl.FindForm() here as
@@ -91,6 +118,18 @@ namespace CefSharp.WinForms.Example
                         }
                     }
                 })
+                .OnPopupBrowserCreated((ctrl, popupBrowser) =>
+                {
+                    //The host control maybe null if the popup was hosted in a native Window e.g. Devtools by default
+                    if(ctrl == null)
+                    {
+                        return;
+                    }
+
+                    //You can access all the core browser functionality via IBrowser
+                    //frames, browwser host, etc.
+                    var isPopup = popupBrowser.IsPopup;
+                })
                 .Build();            
 
             browser.LoadingStateChanged += OnBrowserLoadingStateChanged;
@@ -124,10 +163,8 @@ namespace CefSharp.WinForms.Example
             };
 
             browser.RenderProcessMessageHandler = new RenderProcessMessageHandler();
-            browser.DisplayHandler = new DisplayHandler();
+            browser.DisplayHandler = new WinFormsDisplayHandler();
             //browser.MouseDown += OnBrowserMouseClick;
-            browser.HandleCreated += OnBrowserHandleCreated;
-            //browser.ResourceHandlerFactory = new FlashResourceHandlerFactory();
             this.multiThreadedMessageLoopEnabled = multiThreadedMessageLoopEnabled;
 
             var eventObject = new ScriptedMethodsBoundObject();
@@ -168,11 +205,6 @@ namespace CefSharp.WinForms.Example
             base.Dispose(disposing);
         }
 
-        private void OnBrowserHandleCreated(object sender, EventArgs e)
-        {
-            browserHandle = ((ChromiumWebBrowser)Browser).Handle;
-        }
-
         private void OnBrowserMouseClick(object sender, MouseEventArgs e)
         {
             MessageBox.Show("Mouse Clicked" + e.X + ";" + e.Y + ";" + e.Button);
@@ -180,14 +212,28 @@ namespace CefSharp.WinForms.Example
 
         private void OnLoadError(object sender, LoadErrorEventArgs args)
         {
-            //Don't display an error for external protocols that we allow the OS to
-            //handle in OnProtocolExecution().
+            //Aborted is generally safe to ignore
+            //Actions like starting a download will trigger an Aborted error
+            //which doesn't require any user action.
+            if(args.ErrorCode == CefErrorCode.Aborted)
+            {
+                return;
+            }
+
+            //Don't display an error for external protocols such as mailto which
+            //we might want to open in the default viewer
             if (args.ErrorCode == CefErrorCode.UnknownUrlScheme && args.Frame.Url.StartsWith("mailto"))
             {
                 return;
             }
 
-            DisplayOutput("Load Error:" + args.ErrorCode + ";" + args.ErrorText);
+            var errorHtml = string.Format("<html><body><h2>Failed to load URL {0} with error {1} ({2}).</h2></body></html>",
+                                              args.FailedUrl, args.ErrorText, args.ErrorCode);
+
+            _ = args.Browser.SetMainFrameDocumentContentAsync(errorHtml);
+
+            //AddressChanged isn't called for failed Urls so we need to manually update the Url TextBox
+            this.InvokeOnUiThreadIfRequired(() => urlTextBox.Text = args.FailedUrl);
         }
 
         private void OnBrowserConsoleMessage(object sender, ConsoleMessageEventArgs args)
@@ -266,7 +312,7 @@ namespace CefSharp.WinForms.Example
         private void OnIsBrowserInitializedChanged(object sender, EventArgs e)
         {
             //Get the underlying browser host wrapper
-            var browserHost = Browser.GetBrowser().GetHost();
+            var browserHost = Browser.BrowserCore.GetHost();
             var requestContext = browserHost.RequestContext;
             string errorMessage;
             // Browser must be initialized before getting/setting preferences
@@ -313,7 +359,7 @@ namespace CefSharp.WinForms.Example
                     while (true)
                     {
                         IntPtr chromeWidgetHostHandle;
-                        if (ChromiumRenderWidgetHandleFinder.TryFindHandle(Browser, out chromeWidgetHostHandle))
+                        if (ChromiumRenderWidgetHandleFinder.TryFindHandle(Browser.BrowserCore, out chromeWidgetHostHandle))
                         {
                             messageInterceptor = new ChromiumWidgetNativeWindow((Control)Browser, chromeWidgetHostHandle);
 
@@ -434,13 +480,13 @@ namespace CefSharp.WinForms.Example
         {
             if (Uri.IsWellFormedUriString(url, UriKind.RelativeOrAbsolute))
             {
-                Browser.Load(url);
+                Browser.LoadUrl(url);
             }
             else
             {
                 var searchUrl = "https://www.google.com/search?q=" + Uri.EscapeDataString(url);
 
-                Browser.Load(searchUrl);
+                Browser.LoadUrl(searchUrl);
             }
 
         }

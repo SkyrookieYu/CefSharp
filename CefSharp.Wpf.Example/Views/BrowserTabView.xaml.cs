@@ -145,7 +145,6 @@ namespace CefSharp.Wpf.Example.Views
             browser.DragHandler = dragHandler;
             //browser.ResourceHandlerFactory = new InMemorySchemeAndResourceHandlerFactory();
             //You can specify a custom RequestContext to share settings amount groups of ChromiumWebBrowsers
-            //Also this is now the only way to access OnBeforePluginLoad - need to implement IRequestContextHandler
             //browser.RequestContext = new RequestContext(new RequestContextHandler());
             //NOTE - This is very important for this example as the default page will not load otherwise
             //browser.RequestContext.RegisterSchemeHandlerFactory(CefSharpSchemeHandlerFactory.SchemeName, null, new CefSharpSchemeHandlerFactory());
@@ -164,7 +163,9 @@ namespace CefSharp.Wpf.Example.Views
 
             browser.LoadError += (sender, args) =>
             {
-                // Don't display an error for downloaded files.
+                //Aborted is generally safe to ignore
+                //Actions like starting a download will trigger an Aborted error
+                //which doesn't require any user action.
                 if (args.ErrorCode == CefErrorCode.Aborted)
                 {
                     return;
@@ -178,10 +179,17 @@ namespace CefSharp.Wpf.Example.Views
                 }
 
                 // Display a load error message.
-                var errorBody = string.Format("<html><body bgcolor=\"white\"><h2>Failed to load URL {0} with error {1} ({2}).</h2></body></html>",
+                var errorHtml = string.Format("<html><body><h2>Failed to load URL {0} with error {1} ({2}).</h2></body></html>",
                                               args.FailedUrl, args.ErrorText, args.ErrorCode);
 
-                args.Frame.LoadHtml(errorBody, base64Encode: true);
+                _ = args.Browser.SetMainFrameDocumentContentAsync(errorHtml);
+
+                //AddressChanged isn't called for failed Urls so we need to manually update the Url TextBox
+                Dispatcher.InvokeAsync(() =>
+                {
+                    var viewModel = (BrowserTabViewModel)this.DataContext;
+                    viewModel.AddressEditable = args.FailedUrl;
+                });
             };
 
             CefExample.RegisterTestResources(browser);
