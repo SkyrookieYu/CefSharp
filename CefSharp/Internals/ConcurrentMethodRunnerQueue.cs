@@ -14,24 +14,32 @@ namespace CefSharp.Internals
     /// the we use ContinueWith to be notified of completion then
     /// raise the MethodInvocationComplete event
     /// </summary>
-    public class ConcurrentMethodRunnerQueue : IMethodRunnerQueue
+    public sealed class ConcurrentMethodRunnerQueue : IMethodRunnerQueue
     {
+        private static readonly Type VoidTaskResultType = Type.GetType("System.Threading.Tasks.VoidTaskResult");
         private readonly IJavascriptObjectRepositoryInternal repository;
-        private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
+        /// <inheritdoc/>
         public event EventHandler<MethodInvocationCompleteArgs> MethodInvocationComplete;
 
+        /// <summary>
+        /// Default constructor
+        /// </summary>
+        /// <param name="repository">javascript object repository</param>
         public ConcurrentMethodRunnerQueue(IJavascriptObjectRepositoryInternal repository)
         {
             this.repository = repository;
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             MethodInvocationComplete = null;
             cancellationTokenSource.Cancel();
         }
 
+        /// <inheritdoc/>
         public void Enqueue(MethodInvocation methodInvocation)
         {
             if (cancellationTokenSource.IsCancellationRequested)
@@ -77,10 +85,14 @@ namespace CefSharp.Internals
                             {
                                 if (t.Status == TaskStatus.RanToCompletion)
                                 {
-                                    //TODO: Use resultTask.GetAwaiter().GetResult() instead
                                     //We use some reflection to get the Result
                                     //If someone has a better way of doing this then please submit a PR
                                     result.Result = resultType.GetProperty("Result").GetValue(resultTask);
+
+                                    if (result.Result != null && result.Result.GetType() == VoidTaskResultType)
+                                    {
+                                        result.Result = null;
+                                    }
                                 }
                                 else
                                 {

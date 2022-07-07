@@ -409,41 +409,6 @@ namespace CefSharp
         }
 
         /// <summary>
-        /// Visit web plugin information. Can be called on any thread in the browser process.
-        /// </summary>
-        public static void VisitWebPluginInfo(IWebPluginInfoVisitor visitor)
-        {
-            Core.Cef.VisitWebPluginInfo(visitor);
-        }
-
-        /// <summary>
-        /// Async returns a list containing Plugin Information
-        /// (Wrapper around CefVisitWebPluginInfo)
-        /// </summary>
-        /// <returns>Returns List of <see cref="WebPluginInfo"/> structs.</returns>
-        public static Task<List<WebPluginInfo>> GetPlugins()
-        {
-            return Core.Cef.GetPlugins();
-        }
-
-        /// <summary>
-        /// Cause the plugin list to refresh the next time it is accessed regardless of whether it has already been loaded.
-        /// </summary>
-        public static void RefreshWebPlugins()
-        {
-            Core.Cef.RefreshWebPlugins();
-        }
-
-        /// <summary>
-        /// Unregister an internal plugin. This may be undone the next time RefreshWebPlugins() is called. 
-        /// </summary>
-        /// <param name="path">Path (directory + file).</param>
-        public static void UnregisterInternalWebPlugin(string path)
-        {
-            Core.Cef.UnregisterInternalWebPlugin(path);
-        }
-
-        /// <summary>
         /// Call during process startup to enable High-DPI support on Windows 7 or newer.
         /// Older versions of Windows should be left DPI-unaware because they do not
         /// support DirectWrite and GDI fonts are kerned very badly.
@@ -572,9 +537,11 @@ namespace CefSharp
         /// <summary>
         /// Sets or clears a specific key-value pair from the crash metadata.
         /// </summary>
-        public static void SetCrashKeyValue(string c, string value)
+        /// <param name="key">key</param>
+        /// <param name="value">value</param>
+        public static void SetCrashKeyValue(string key, string value)
         {
-            Core.Cef.SetCrashKeyValue(value, value);
+            Core.Cef.SetCrashKeyValue(key, value);
         }
 
         /// <summary>
@@ -660,6 +627,45 @@ namespace CefSharp
         public static void WaitForBrowsersToClose()
         {
             Core.Cef.WaitForBrowsersToClose();
+        }
+
+
+        /// <summary>
+        /// Helper method to ensure all ChromiumWebBrowser instances have been
+        /// closed/disposed, should be called before Cef.Shutdown.
+        /// Disposes all remaining ChromiumWebBrowser instances
+        /// then waits for CEF to release its remaining CefBrowser instances.
+        /// Finally a small delay of 50ms to allow for CEF to finish it's cleanup.
+        /// Should only be called when MultiThreadedMessageLoop = true;
+        /// (Hasn't been tested when when CEF integrates into main message loop).
+        /// </summary>
+        /// <param name="timeoutInMiliseconds">The timeout in miliseconds.</param>
+        public static void WaitForBrowsersToClose(int timeoutInMiliseconds)
+        {
+            Core.Cef.WaitForBrowsersToClose(timeoutInMiliseconds);
+        }
+
+        /// <summary>
+        /// Post an action for delayed execution on the specified thread.
+        /// </summary>
+        /// <param name="threadId">thread id</param>
+        /// <param name="action">action to execute</param>
+        /// <param name="delayInMs">delay in ms</param>
+        /// <returns>bool</returns>
+        public static bool PostDelayedAction(CefThreadIds threadId, Action action, int delayInMs)
+        {
+            return Core.Cef.PostDelayedAction(threadId, action, delayInMs);
+        }
+
+        /// <summary>
+        /// Post an action for execution on the specified thread.
+        /// </summary>
+        /// <param name="threadId">thread id</param>
+        /// <param name="action">action to execute</param>
+        /// <returns>bool</returns>
+        public static bool PostAction(CefThreadIds threadId, Action action)
+        {
+            return Core.Cef.PostAction(threadId, action);
         }
     }
 }

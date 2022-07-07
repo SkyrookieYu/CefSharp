@@ -13,6 +13,7 @@ using CefSharp.Example.Handlers;
 using CefSharp.Example.JavascriptBinding;
 using CefSharp.Example.ModelBinding;
 using CefSharp.Example.PostMessage;
+using CefSharp.Fluent;
 using CefSharp.Wpf.Example.Handlers;
 using CefSharp.Wpf.Example.ViewModels;
 using CefSharp.Wpf.Experimental.Accessibility;
@@ -46,7 +47,10 @@ namespace CefSharp.Wpf.Example.Views
             var bindingOptions = new BindingOptions()
             {
                 Binder = BindingOptions.DefaultBinder.Binder,
-                MethodInterceptor = new MethodInterceptorLogger() // intercept .net methods calls from js and log it
+                MethodInterceptor = new MethodInterceptorLogger(), // intercept .net methods calls from js and log it
+#if !NETCOREAPP
+                PropertyInterceptor = new PropertyInterceptorLogger()
+#endif
             };
 
             //To use the ResolveObject below and bind an object with isAsync:false we must set CefSharpSettings.WcfEnabled = true before
@@ -90,7 +94,7 @@ namespace CefSharp.Wpf.Example.Views
                 {
                     if (e.ObjectName == "bound")
                     {
-                        repo.Register("bound", new BoundObject(), isAsync: false, options: BindingOptions.DefaultBinder);
+                        repo.Register("bound", new BoundObject(), isAsync: false, options: bindingOptions);
                     }
                     else if (e.ObjectName == "boundAsync")
                     {
@@ -128,11 +132,26 @@ namespace CefSharp.Wpf.Example.Views
                 }
             };
 
-            var downloadHandler = new DownloadHandler();
-            downloadHandler.OnBeforeDownloadFired += OnBeforeDownloadFired;
-            downloadHandler.OnDownloadUpdatedFired += OnDownloadUpdatedFired;
-            browser.DownloadHandler = downloadHandler;
+            browser.DownloadHandler = DownloadHandler
+                .Create()
+                .CanDownload((chromiumWebBrowser, browser, url, requestMethod) =>
+                {
+                    //All all downloads
+                    return true;
+                })
+                .OnBeforeDownload((chromiumWebBrowser, browser, downloadItem, callback) =>
+                {
+                    UpdateDownloadAction("OnBeforeDownload", downloadItem);
+
+                    callback.Continue("", showDialog: true);
+
+                }).OnDownloadUpdated((chromiumWebBrowser, browser, downloadItem, callback) =>
+                {
+                    UpdateDownloadAction("OnDownloadUpdated", downloadItem);
+                })
+                .Build();
             browser.AudioHandler = new CefSharp.Handler.AudioHandler();
+            browser.JsDialogHandler = new Handlers.JsDialogHandler();
 
             //Read an embedded bitmap into a memory stream then register it as a resource you can then load custom://cefsharp/images/beach.jpg
             var beachImageStream = new MemoryStream();
@@ -233,16 +252,6 @@ namespace CefSharp.Wpf.Example.Views
                 e.Frame.ExecuteJavaScriptAsync("PostMessageIntTestCallback(" + (int)e.Message + ")");
             }
 
-        }
-
-        private void OnBeforeDownloadFired(object sender, DownloadItem e)
-        {
-            this.UpdateDownloadAction("OnBeforeDownload", e);
-        }
-
-        private void OnDownloadUpdatedFired(object sender, DownloadItem e)
-        {
-            this.UpdateDownloadAction("OnDownloadUpdated", e);
         }
 
         private void UpdateDownloadAction(string downloadAction, DownloadItem downloadItem)

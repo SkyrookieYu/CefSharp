@@ -174,7 +174,7 @@ namespace CefSharp
 
         void ClientAdapter::OnAfterCreated(CefRefPtr<CefBrowser> browser)
         {
-            BrowserRefCounter::Instance->Increment();
+            BrowserRefCounter::Instance->Increment(_browserControl->GetType());
 
             auto browserWrapper = gcnew CefBrowserWrapper(browser);
 
@@ -253,7 +253,7 @@ namespace CefSharp
                 _cefBrowser = nullptr;
             }
 
-            BrowserRefCounter::Instance->Decrement();
+            BrowserRefCounter::Instance->Decrement(_browserControl->GetType());
         }
 
         void ClientAdapter::OnLoadingStateChange(CefRefPtr<CefBrowser> browser, bool isLoading, bool canGoBack, bool canGoForward)
@@ -666,18 +666,6 @@ namespace CefSharp
             return handler->OnQuotaRequest(_browserControl, browserWrapper, StringUtils::ToClr(originUrl), newSize, requestCallback);
         }
 
-        void ClientAdapter::OnPluginCrashed(CefRefPtr<CefBrowser> browser, const CefString& plugin_path)
-        {
-            auto handler = _browserControl->RequestHandler;
-
-            if (handler != nullptr)
-            {
-                auto browserWrapper = GetBrowserWrapper(browser->GetIdentifier(), browser->IsPopup());
-
-                handler->OnPluginCrashed(_browserControl, browserWrapper, StringUtils::ToClr(plugin_path));
-            }
-        }
-
         void ClientAdapter::OnRenderViewReady(CefRefPtr<CefBrowser> browser)
         {
             auto handler = _browserControl->RequestHandler;
@@ -945,7 +933,7 @@ namespace CefSharp
         }
 
         bool ClientAdapter::OnFileDialog(CefRefPtr<CefBrowser> browser, FileDialogMode mode, const CefString& title,
-            const CefString& default_file_path, const std::vector<CefString>& accept_filters, int selected_accept_filter,
+            const CefString& default_file_path, const std::vector<CefString>& accept_filters,
             CefRefPtr<CefFileDialogCallback> callback)
         {
             auto handler = _browserControl->DialogHandler;
@@ -958,18 +946,13 @@ namespace CefSharp
             auto browserWrapper = GetBrowserWrapper(browser->GetIdentifier(), browser->IsPopup());
             auto callbackWrapper = gcnew CefFileDialogCallbackWrapper(callback);
 
-            auto dialogMode = mode & FileDialogMode::FILE_DIALOG_TYPE_MASK;
-            auto dialogFlags = mode & ~FileDialogMode::FILE_DIALOG_TYPE_MASK;
-
             return handler->OnFileDialog(
                 _browserControl,
                 browserWrapper,
-                (CefFileDialogMode)dialogMode,
-                (CefFileDialogFlags)dialogFlags,
+                (CefFileDialogMode)mode,
                 StringUtils::ToClr(title),
                 StringUtils::ToClr(default_file_path),
                 StringUtils::ToClr(accept_filters),
-                selected_accept_filter,
                 callbackWrapper);
         }
 
@@ -1000,6 +983,20 @@ namespace CefSharp
 
                 return handler->OnDraggableRegionsChanged(_browserControl, browserWrapper, %frameWrapper, regionsList);
             }
+        }
+
+        bool ClientAdapter::CanDownload(CefRefPtr<CefBrowser> browser, const CefString& url, const CefString& request_method)
+        {
+            auto handler = _browserControl->DownloadHandler;
+
+            if (handler == nullptr)
+            {
+                return true;
+            }
+
+            auto browserWrapper = GetBrowserWrapper(browser->GetIdentifier(), browser->IsPopup());
+
+            return handler->CanDownload(_browserControl, browserWrapper, StringUtils::ToClr(url), StringUtils::ToClr(request_method));
         }
 
         void ClientAdapter::OnBeforeDownload(CefRefPtr<CefBrowser> browser, CefRefPtr<CefDownloadItem> download_item,
@@ -1393,7 +1390,10 @@ namespace CefSharp
                 auto success = argList->GetBool(0);
                 auto callbackId = GetInt64(argList, 1);
 
-                auto pendingTask = _pendingTaskRepository->RemovePendingTask(callbackId);
+                auto pendingTask = name == kEvaluateJavascriptResponse ?
+                    _pendingTaskRepository->RemovePendingTask(callbackId) :
+                    _pendingTaskRepository->RemoveJavascriptCallbackPendingTask(callbackId);
+
                 if (pendingTask != nullptr)
                 {
                     auto response = gcnew JavascriptResponse();

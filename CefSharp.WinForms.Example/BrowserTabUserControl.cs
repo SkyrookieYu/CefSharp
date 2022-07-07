@@ -20,7 +20,7 @@ namespace CefSharp.WinForms.Example
 {
     public partial class BrowserTabUserControl : UserControl
     {
-        public IChromiumWebBrowserBase Browser { get; private set; }
+        public IWinFormsChromiumWebBrowser Browser { get; private set; }
         private ChromiumWidgetNativeWindow messageInterceptor;
         private bool multiThreadedMessageLoopEnabled;
 
@@ -57,7 +57,7 @@ namespace CefSharp.WinForms.Example
             browser.MenuHandler = new MenuHandler();
             browser.RequestHandler = new WinFormsRequestHandler(openNewTab);
             browser.JsDialogHandler = new JsDialogHandler();
-            browser.DownloadHandler = new DownloadHandler();
+            browser.DownloadHandler = Fluent.DownloadHandler.AskUser();
             browser.AudioHandler = new CefSharp.Handler.AudioHandler();
             browser.FrameHandler = new CefSharp.Handler.FrameHandler();
 
@@ -109,9 +109,7 @@ namespace CefSharp.WinForms.Example
                         {
                             if (ctrl.FindForm() is BrowserForm owner)
                             {
-                                var windowHandle = popupBrowser.GetHost().GetWindowHandle();
-
-                                owner.RemoveTab(windowHandle);
+                                owner.RemoveTab(ctrl);
                             }
 
                             ctrl.Dispose();
@@ -311,9 +309,7 @@ namespace CefSharp.WinForms.Example
 
         private void OnIsBrowserInitializedChanged(object sender, EventArgs e)
         {
-            //Get the underlying browser host wrapper
-            var browserHost = Browser.BrowserCore.GetHost();
-            var requestContext = browserHost.RequestContext;
+            var requestContext = Browser.GetRequestContext();
             string errorMessage;
             // Browser must be initialized before getting/setting preferences
             var success = requestContext.SetPreference("enable_do_not_track", true, out errorMessage);
@@ -491,7 +487,14 @@ namespace CefSharp.WinForms.Example
 
         }
 
-        public async void CopySourceToClipBoardAsync()
+        public async Task HideScrollbarsAsync()
+        {
+            var devTools = Browser.GetDevToolsClient();
+
+            await devTools.Emulation.SetScrollbarsHiddenAsync(true);
+        }
+
+        public async Task CopySourceToClipBoardAsync()
         {
             var htmlSource = await Browser.GetSourceAsync();
 
@@ -527,7 +530,7 @@ namespace CefSharp.WinForms.Example
         {
             if (!string.IsNullOrEmpty(findTextBox.Text))
             {
-                Browser.Find(0, findTextBox.Text, next, false, false);
+                Browser.Find(findTextBox.Text, next, false, false);
             }
         }
 

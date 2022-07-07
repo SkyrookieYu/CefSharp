@@ -32,9 +32,9 @@ Before posting a bug report please take the time to read https://codeblog.jonske
 Delete this line and everything above, and then fill in the details below.
 
 - **What version of the product are you using?**
+    - Please only create an issue if you can reproduce the problem with version 102.0.100 or greater.
     - What version are you using? Nuget? CI Nuget? build from a branch? If so please link to the relevant commit.
-	- Please include the exact version number you are using e.g. 95.7.141 (no ambiguous statements like `Latest from Nuget`)
-    - Please only create an issue if you can reproduce the problem with version 95.7.141 or greater.
+	- Please include the exact version number you are using e.g. 102.0.100 (no ambiguous statements like `Latest from Nuget`)
 
 - **What architecture x86 or x64?**
     <x86/x64>
@@ -69,17 +69,17 @@ Delete this line and everything above, and then fill in the details below.
 
 - **Does this problem also occur in the `CEF` Sample Application**
     - Download one of the following:
-    - For x86 download https://cef-builds.spotifycdn.com/cef_binary_96.0.18%2Bgfe551e4%2Bchromium-96.0.4664.110_windows32_client.tar.bz2
-    - For x64 download https://cef-builds.spotifycdn.com/cef_binary_96.0.18%2Bgfe551e4%2Bchromium-96.0.4664.110_windows64_client.tar.bz2
-	- For arm64 download https://cef-builds.spotifycdn.com/cef_binary_96.0.18%2Bgfe551e4%2Bchromium-96.0.4664.110_windowsarm64_client.tar.bz2
+    - For x86 download   https://cef-builds.spotifycdn.com/cef_binary_102.0.10%2Bgf249b2e%2Bchromium-102.0.5005.115_windows32_client.tar.bz2
+    - For x64 download   https://cef-builds.spotifycdn.com/cef_binary_102.0.10%2Bgf249b2e%2Bchromium-102.0.5005.115_windows64_client.tar.bz2
+	- For arm64 download https://cef-builds.spotifycdn.com/cef_binary_102.0.10%2Bgf249b2e%2Bchromium-102.0.5005.115_windowsarm64_client.tar.bz2
 	- Extract and run cefclient.exe
 		- If you are using WPF/OffScreen run
 		```
-		cefclient.exe --multi-threaded-message-loop --off-screen-rendering-enabled --enable-gpu --no-sandbox --disable-site-isolation-trials
+		cefclient.exe --multi-threaded-message-loop --no-sandbox --off-screen-rendering-enabled --enable-gpu
 		```
 		- If you are using WinForms run
 		```
-		cefclient.exe --multi-threaded-message-loop --no-sandbox --disable-site-isolation-trials
+		cefclient.exe --multi-threaded-message-loop --no-sandbox
 		```
 	- **MAKE SURE TO TEST WITH THE COMMAND LINE ARGS LISTED ABOVE**
     - If you can reproduce the problem with `cefclient` then please report the issue on https://bitbucket.org/chromiumembedded/cef/overview (Make sure you search before opening an issue). If you open an issue here it will most likely be closed as `upstream` as the bug needs to be fixed in `CEF`.

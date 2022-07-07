@@ -189,16 +189,12 @@ namespace CefSharp
         /// <summary>
         /// Search for <paramref name="searchText"/>.
         /// </summary>
-        /// <param name="identifier">must be a unique ID and these IDs
-        /// must strictly increase so that newer requests always have greater IDs than
-        /// older requests. If identifier is zero or less than the previous ID value
-        /// then it will be automatically assigned a new valid ID. </param>
         /// <param name="searchText">text to search for</param>
         /// <param name="forward">indicates whether to search forward or backward within the page</param>
         /// <param name="matchCase">indicates whether the search should be case-sensitive</param>
         /// <param name="findNext">indicates whether this is the first request or a follow-up</param>
         /// <remarks>The <see cref="IFindHandler"/> instance, if any, will be called to report find results.</remarks>
-        void Find(int identifier, string searchText, bool forward, bool matchCase, bool findNext);
+        void Find(string searchText, bool forward, bool matchCase, bool findNext);
 
         /// <summary>
         /// Returns the extension hosted in this browser or null if no extension is hosted. See <see cref="IRequestContext.LoadExtension"/> for details.
@@ -335,9 +331,8 @@ namespace CefSharp
         /// <param name="title">to the title to be used for the dialog and may be empty to show the default title ("Open" or "Save" depending on the mode)</param>
         /// <param name="defaultFilePath">is the path with optional directory and/or file name component that will be initially selected in the dialog</param>
         /// <param name="acceptFilters">are used to restrict the selectable file types and may any combination of (a) valid lower-cased MIME types (e.g. "text/*" or "image/*"), (b) individual file extensions (e.g. ".txt" or ".png"), or (c) combined description and file extension delimited using "|" and ";" (e.g. "Image Types|.png;.gif;.jpg")</param>
-        /// <param name="selectedAcceptFilter">is the 0-based index of the filter that will be selected by default</param>
         /// <param name="callback">will be executed after the dialog is dismissed or immediately if another dialog is already pending.</param>
-        void RunFileDialog(CefFileDialogMode mode, string title, string defaultFilePath, IList<string> acceptFilters, int selectedAcceptFilter, IRunFileDialogCallback callback);
+        void RunFileDialog(CefFileDialogMode mode, string title, string defaultFilePath, IList<string> acceptFilters, IRunFileDialogCallback callback);
 
         /// <summary>
         /// Returns the request context for this browser.

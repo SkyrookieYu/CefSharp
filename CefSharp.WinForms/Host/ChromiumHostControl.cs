@@ -5,6 +5,7 @@
 using System;
 using System.ComponentModel;
 using System.Drawing;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -16,7 +17,7 @@ namespace CefSharp.WinForms.Host
     /// <seealso cref="Control" />
     [Docking(DockingBehavior.AutoDock), ToolboxBitmap(typeof(ChromiumHostControl)),
     Designer(typeof(ChromiumWebBrowserDesigner))]
-    public class ChromiumHostControl : ChromiumHostControlBase, IChromiumWebBrowserBase
+    public class ChromiumHostControl : ChromiumHostControlBase, IWinFormsChromiumWebBrowser
     {
         /// <summary>
         /// Get access to the core <see cref="IBrowser"/> instance.
@@ -242,10 +243,18 @@ namespace CefSharp.WinForms.Host
             }
         }
 
+        /// <inheritdoc/>
         public Task<LoadUrlAsyncResponse> LoadUrlAsync(string url)
         {
             //LoadUrlAsync is actually a static method so that CefSharp.Wpf.HwndHost can reuse the code
             return CefSharp.WebBrowserExtensions.LoadUrlAsync(this, url);
+        }
+
+        /// <inheritdoc/>
+        public Task<WaitForNavigationAsyncResponse> WaitForNavigationAsync(TimeSpan? timeout = null, CancellationToken cancellationToken = default)
+        {
+            //WaitForNavigationAsync is actually a static method so that CefSharp.Wpf.HwndHost can reuse the code
+            return CefSharp.WebBrowserExtensions.WaitForNavigationAsync(this, timeout, cancellationToken);
         }
 
         /// <summary>
@@ -264,6 +273,7 @@ namespace CefSharp.WinForms.Host
             return browser.MainFrame;
         }
 
+        /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
             if (disposing)

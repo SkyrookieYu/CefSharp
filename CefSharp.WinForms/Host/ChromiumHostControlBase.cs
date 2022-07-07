@@ -22,6 +22,7 @@ namespace CefSharp.WinForms.Host
         /// Used for sending messages to the browser
         /// e.g. resize
         /// </summary>
+        [Browsable(false), DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public IntPtr BrowserHwnd { get; set; }
         /// <summary>
         /// Set to true while handing an activating WM_ACTIVATE message.
@@ -188,7 +189,7 @@ namespace CefSharp.WinForms.Host
         /// </summary>
         /// <param name="browser">browser</param>
         /// <returns>returns the assocaited <see cref="ChromiumHostControl"/> or <see cref="ChromiumWebBrowser"/> or null if Disposed or no host found.</returns>
-        internal static T FromBrowser<T>(IBrowser browser) where T : ChromiumHostControlBase
+        public static T FromBrowser<T>(IBrowser browser) where T : ChromiumHostControlBase
         {
             if (browser.IsDisposed)
             {

@@ -4,11 +4,14 @@
 
 using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using CefSharp.DevTools.Page;
 using CefSharp.Example;
 using CefSharp.Example.Handlers;
 using CefSharp.Internals;
@@ -62,6 +65,33 @@ namespace CefSharp.Test.OffScreen
         }
 
         [Fact]
+        public async Task ShouldRespectDisposed()
+        {
+            ChromiumWebBrowser browser;
+
+            using (browser = new ChromiumWebBrowser(CefExample.DefaultUrl))
+            {
+                var response = await browser.WaitForInitialLoadAsync();
+
+                Assert.True(response.Success);
+
+                var mainFrame = browser.GetMainFrame();
+                Assert.True(mainFrame.IsValid);
+                Assert.Equal(CefExample.DefaultUrl, mainFrame.Url);
+                Assert.Equal(200, response.HttpStatusCode);
+
+                output.WriteLine("Url {0}", mainFrame.Url);
+            }
+
+            Assert.True(browser.IsDisposed);
+
+            Assert.Throws<ObjectDisposedException>(() =>
+            {
+                browser.Copy();
+            });
+        }
+
+        [Fact]
         public async Task CanLoadInvalidDomain()
         {
             using (var browser = new ChromiumWebBrowser("notfound.cefsharp.test"))
@@ -97,6 +127,8 @@ namespace CefSharp.Test.OffScreen
         [Fact]
         public void BrowserRefCountDecrementedOnDispose()
         {
+            var currentCount = BrowserRefCounter.Instance.Count;
+
             var manualResetEvent = new ManualResetEvent(false);
 
             var browser = new ChromiumWebBrowser("https://google.com");
@@ -111,13 +143,14 @@ namespace CefSharp.Test.OffScreen
             manualResetEvent.WaitOne();
 
             //TODO: Refactor this so reference is injected into browser
-            Assert.Equal(1, BrowserRefCounter.Instance.Count);
+            Assert.Equal(currentCount + 1, BrowserRefCounter.Instance.Count);
 
             browser.Dispose();
 
-            Assert.True(BrowserRefCounter.Instance.Count <= 1);
+            Cef.WaitForBrowsersToClose(5000);
 
-            Cef.WaitForBrowsersToClose();
+            output.WriteLine("BrowserRefCounter Log");
+            output.WriteLine(BrowserRefCounter.Instance.GetLog());
 
             Assert.Equal(0, BrowserRefCounter.Instance.Count);
         }
@@ -771,6 +804,114 @@ namespace CefSharp.Test.OffScreen
                 Assert.True(result);
                 Assert.NotNull(browserCore);
                 Assert.Equal(browser.BrowserCore.Identifier, browserCore.Identifier);
+            }
+        }
+
+        [Fact]
+        public async Task CanCaptureScreenshotAsync()
+        {
+            using (var browser = new ChromiumWebBrowser("http://www.google.com"))
+            {
+                var response = await browser.WaitForInitialLoadAsync();
+
+                Assert.True(response.Success);
+
+                var result1 = await browser.CaptureScreenshotAsync();
+                Assert.Equal(1366, browser.Size.Width);
+                Assert.Equal(768, browser.Size.Height);
+                Assert.Equal(1, browser.DeviceScaleFactor);
+                using (var screenshot = Image.FromStream(new MemoryStream(result1)))
+                {
+                    Assert.Equal(1366, screenshot.Width);
+                    Assert.Equal(768, screenshot.Height);
+                }
+
+
+                var result2 = await browser.CaptureScreenshotAsync(viewport: new Viewport { Width = 1366, Height = 768, X = 100, Y = 200, Scale = 2 });
+                Assert.Equal(1466, browser.Size.Width);
+                Assert.Equal(968, browser.Size.Height);
+                Assert.Equal(2, browser.DeviceScaleFactor);
+                using (var screenshot = Image.FromStream(new MemoryStream(result2)))
+                {
+                    Assert.Equal(2732, screenshot.Width);
+                    Assert.Equal(1536, screenshot.Height);
+                }
+
+
+                var result3 = await browser.CaptureScreenshotAsync(viewport: new Viewport { Width = 100, Height = 200, Scale = 2 });
+                Assert.Equal(1466, browser.Size.Width);
+                Assert.Equal(968, browser.Size.Height);
+                Assert.Equal(2, browser.DeviceScaleFactor);
+                using (var screenshot = Image.FromStream(new MemoryStream(result3)))
+                {
+                    Assert.Equal(200, screenshot.Width);
+                    Assert.Equal(400, screenshot.Height);
+                }
+
+
+                var result4 = await browser.CaptureScreenshotAsync(viewport: new Viewport { Width = 100, Height = 200, Scale = 1 });
+                Assert.Equal(1466, browser.Size.Width);
+                Assert.Equal(968, browser.Size.Height);
+                Assert.Equal(1, browser.DeviceScaleFactor);
+                using (var screenshot = Image.FromStream(new MemoryStream(result4)))
+                {
+                    Assert.Equal(100, screenshot.Width);
+                    Assert.Equal(200, screenshot.Height);
+                }
+            }
+        }
+
+        [Fact]
+        public async Task CanResizeWithDeviceScalingFactor()
+        {
+            using (var browser = new ChromiumWebBrowser("http://www.google.com"))
+            {
+                var response = await browser.WaitForInitialLoadAsync();
+
+                Assert.True(response.Success);
+
+                Assert.Equal(1366, browser.Size.Width);
+                Assert.Equal(768, browser.Size.Height);
+                Assert.Equal(1, browser.DeviceScaleFactor);
+
+
+                await browser.ResizeAsync(800, 600, 2);
+
+                Assert.Equal(800, browser.Size.Width);
+                Assert.Equal(600, browser.Size.Height);
+                Assert.Equal(2, browser.DeviceScaleFactor);
+
+                using (var screenshot = browser.ScreenshotOrNull())
+                {
+                    Assert.Equal(1600, screenshot.Width);
+                    Assert.Equal(1200, screenshot.Height);
+                }
+
+
+                await browser.ResizeAsync(400, 300);
+
+                Assert.Equal(400, browser.Size.Width);
+                Assert.Equal(300, browser.Size.Height);
+                Assert.Equal(2, browser.DeviceScaleFactor);
+
+                using (var screenshot = browser.ScreenshotOrNull())
+                {
+                    Assert.Equal(800, screenshot.Width);
+                    Assert.Equal(600, screenshot.Height);
+                }
+
+
+                await browser.ResizeAsync(1366, 768, 1);
+
+                Assert.Equal(1366, browser.Size.Width);
+                Assert.Equal(768, browser.Size.Height);
+                Assert.Equal(1, browser.DeviceScaleFactor);
+
+                using (var screenshot = browser.ScreenshotOrNull())
+                {
+                    Assert.Equal(1366, screenshot.Width);
+                    Assert.Equal(768, screenshot.Height);
+                }
             }
         }
 

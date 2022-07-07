@@ -167,7 +167,6 @@ namespace CefSharp.DevTools
                 CefThread.ExecuteOnUiThread(() =>
                 {
                     ExecuteDevToolsMethod(browserHost, messageId, method, parameters, methodResultContext);
-                    return (object)null;
                 });
             }
             else
@@ -202,7 +201,7 @@ namespace CefSharp.DevTools
         }
 
         /// <inheritdoc/>
-        void IDisposable.Dispose()
+        public void Dispose()
         {
             //Dispose can be called from different Threads
             //CEF maintains a reference and the user
@@ -377,7 +376,7 @@ namespace CefSharp.DevTools
         /// </summary>
         /// <param name="type">Object type</param>
         /// <param name="stream">JSON stream</param>
-        /// <returns>object of type <typeparamref name="type"/></returns>
+        /// <returns>object of type <paramref name="type"/></returns>
         private static object DeserializeJson(Type type, Stream stream)
         {
 #if NETCOREAPP
